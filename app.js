@@ -10,7 +10,6 @@ const app = express();
 const port = 8081;
 
 app.use(express.static("public"));
-
 // app.get("/", (req, res) => {
 //   res.send("NFT bundler by David G. Smith.");
 // });
@@ -75,9 +74,9 @@ app.use(express.static("public"));
 //     });
 // });
 
-app.post("/full-sequence", async (req, res) => {
+app.post("/build-sequence", async (req, res) => {
   await utils
-    .completeEntireSequence()
+    .completeBuildAndDeploySequence()
     .then(() => {
       res.send({ result: "full sequence completed" });
     })

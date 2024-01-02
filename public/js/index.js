@@ -55,9 +55,9 @@
   });
 
   document
-    .querySelector("#full-sequence-button")
+    .querySelector("#build-sequence-button")
     .addEventListener("click", () => {
-      launchFullSequence();
+      launchBuildSequence();
     });
 
   // document.querySelector("#preview-frame").addEventListener("load", () => {
@@ -176,26 +176,27 @@
   //     });
   // }
 
-  function launchFullSequence() {
-    fetch("/full-sequence", {
+  function launchBuildSequence() {
+    fetch("/build-sequence", {
       method: "POST",
       headers: {
         "Content-type": "application/json",
       },
     })
-      .then((r) => r.json())
-      .then((response) => {
-        document.querySelector("#full-sequence-button-response").innerHTML =
+      .then(() => {
+        document.querySelector("#build-sequence-button-response").innerHTML =
+          response.result;
+        document.querySelector("#project-meta-display").innerHTML =
           response.result;
       })
       .then(() => {
         setTimeout(() => {
-          document.querySelector("#full-sequence-button-response").innerHTML =
+          document.querySelector("#build-sequence-button-response").innerHTML =
             "";
         }, "5000");
       })
       .catch((err) => {
-        console.log("We were unable to complete sequence - ", err);
+        console.log("We were unable to complete build sequence - ", err);
       });
   }
 

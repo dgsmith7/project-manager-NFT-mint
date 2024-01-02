@@ -14,23 +14,26 @@ const { hre, ethers, run, network } = pkg;
 
 ("use strict");
 
+// add line breaks to project and meta strings
+
 let finalProjectJSON = `{"project": "${projectInfo.projectName}","elements":[`;
 let imageIPFS = [];
 let animIPFS = [];
 let finalMetaIPFS = [];
 let projectMetaIPFS = "";
+let contractAddress = "";
 
-export async function completeEntireSequence() {
-  let seq = [
-    // buildAnimationFiles,
-    // capturePreviewImages,
-    // pinImagesAndAnims,
-    // buildFinalMetaAndPinToIPFS,
-    // buildProjectMetaAndPinToIPFS,
+export async function completeBuildAndDeploySequence() {
+  let seq1 = [
+    buildAnimationFiles,
+    capturePreviewImages,
+    pinImagesAndAnims,
+    buildFinalMetaAndPinToIPFS,
+    buildProjectMetaAndPinToIPFS,
     deployContract,
-    // buildScriptsForDatabase,
+    buildScriptsForDatabase,
   ];
-  for (const fn of seq) await fn().then(console.log("Completing " + fn.name));
+  for (const fn of seq1) await fn();
 }
 
 export async function getIframeString(hash) {
@@ -88,16 +91,15 @@ export async function buildAnimationFiles() {
       webpackCode +
       animStrings.part4;
     //    console.log(finalString);
-    await fs.promises.writeFile(
-      `./build/2-anim-files/${tokenData.tokenId}.html`,
-      finalString,
-      (err) => {
-        if (err) {
-          console.error(err, +" on file " + i);
-        }
-        console.log("Animation File " + i + " written successfully.");
-      }
-    );
+    try {
+      fs.writeFileSync(
+        `./build/2-anim-files/${tokenData.tokenId}.html`,
+        finalString
+      );
+      console.log('Animation File " + i + " written successfully.');
+    } catch (err) {
+      console.error(err);
+    }
   }
 }
 
@@ -185,11 +187,12 @@ export async function buildFinalMetaAndPinToIPFS() {
       JSON.parse(animIPFS[i]).ipfs
     }"}`;
     let finalMetaFileName = `./build/4-completed-metadata/${tokenId}.json`;
-    await fs.promises.writeFile(finalMetaFileName, finalMeta, (err) => {
-      if (err) {
-        console.error(err, +" on file " + i);
-      }
-    });
+    try {
+      fs.writeFileSync(finalMetaFileName, finalMeta);
+      console.log('Metafile " + i + "written successfully.');
+    } catch (err) {
+      console.error(err);
+    }
   }
   let finalMetaString = `{"metas": [`;
   for (let i = 0; i < projectInfo.numberOfEditions; i++) {
@@ -230,11 +233,12 @@ export async function buildProjectMetaAndPinToIPFS() {
   let projectMetaFileName = `./build/4-completed-metadata/${projectInfo.projectName
     .replace(/ /g, "_")
     .toLowerCase()}.json`;
-  await fs.promises.writeFile(projectMetaFileName, projectMeta, (err) => {
-    if (err) {
-      console.error(err, +" on writing file ");
-    }
-  });
+  try {
+    fs.writeFileSync(projectMetaFileName, projectMeta);
+    console.log('Project metadata file " + i + "written successfully.');
+  } catch (err) {
+    console.error(err);
+  }
 
   let projectMetaOptions = {
     pinataMetadata: {
@@ -247,71 +251,22 @@ export async function buildProjectMetaAndPinToIPFS() {
       cidVersion: 1,
     },
   };
-  projectMetaIPFS = await pinata
+  await pinata
     .pinFromFS(projectMetaFileName, projectMetaOptions)
     .then((res) => {
       projectMetaString += `"https://ipfs.io/ipfs/${res.IpfsHash}"}`;
+      projectMetaIPFS = `"https://ipfs.io/ipfs/${res.IpfsHash}"}`;
     });
   finalProjectJSON += `${projectMetaString}]}`;
-  await fs.promises.writeFile(
-    `./build/5-final-project-data/finalProjectData.json`,
-    finalProjectJSON,
-    (err) => {
-      if (err) {
-        console.error(err, +" on file " + i);
-      }
-    }
-  );
-  console.log(finalProjectJSON);
-}
-
-export async function buildScriptsForDatabase() {
-  // add project to db script
-  // activate project script
-
-  let addProjectScriptString = `INSERT INTO projects (
-project_name,
-img_url,
-project_description,
-quantity,
-price_eth,
-open_date_gmt,
-royalty_percent,
-active
-)
-VALUES (
-'${projectInfo.projectName}',
-'https://ipfs.io/ipfs/${imageIPFS[0].ipfs}',
-'${projectInfo.websiteProjectDescription}',
-${projectInfo.numberOfEditions},
-${projectInfo.price},
-${projectInfo.releaseDate},
-${projectInfo.royaltiesPercent},
-0
-);
-`;
-  let addScriptFileName = `./build/5-final-project-data/addNewProject.sql`;
-  await fs.promises.writeFile(
-    addScriptFileName,
-    addProjectScriptString,
-    (err) => {
-      if (err) {
-        console.error(err, +" on file " + i);
-      }
-    }
-  );
-
-  let activateProjectScriptString = `UPDATE projects SET active = 1 WHERE project_name = '${projectInfo.projectName}';`;
-  let activateProjectScriptFileName = `./build/5-final-project-data/activateNewProject.sql`;
-  await fs.promises.writeFile(
-    activateProjectScriptFileName,
-    activateProjectScriptString,
-    (err) => {
-      if (err) {
-        console.error(err, +" on file " + i);
-      }
-    }
-  );
+  try {
+    fs.writeFileSync(
+      `./build/5-final-project-data/finalProjectData.json`,
+      finalProjectJSON
+    );
+    console.log("Final Project summary file written successfully.");
+  } catch (err) {
+    console.error(err);
+  }
 }
 
 export async function deployContract() {
@@ -322,14 +277,17 @@ export async function deployContract() {
 }
 
 async function deploy() {
+  let priceString = Math.floor(
+    projectInfo.price * 10000 * 10000 * 10000 * 10000 * 100
+  ).toString();
   const args = {
-    mint_price: "20000000000000000", // .02 MATIC
-    max_tokens: 3,
-    base_uri:
-      "https://ipfs.io/ipfs/QmTwiGMeNjhrECN5tHkSEN7jHDEQ3tvFzeCXF4f3EhZJzv",
-    royaltyArtist: process.env.STUNT_WALLET_ADDRESS,
-    royaltyBasis: 500,
+    mint_price: priceString,
+    max_tokens: projectInfo.numberOfEditions,
+    base_uri: projectMetaIPFS,
+    royaltyArtist: projectInfo.openSeaCollectionFee_recipient,
+    royaltyBasis: projectInfo.openSeaCollectionSeller_fee_basis_points,
   };
+  console.log(args);
   const courseNFTContractFactory = await ethers.getContractFactory(
     "CourseNFTContract"
   );
@@ -351,7 +309,7 @@ async function deploy() {
   );
   console.log("Waiting for block verifications...");
   await courseNFTContract.deploymentTransaction().wait(15);
-  let contractAddress = await courseNFTContract.getAddress();
+  contractAddress = await courseNFTContract.getAddress();
   console.log(`Contract deployed to ${contractAddress}`);
   // verify
   if (
@@ -403,10 +361,53 @@ async function verify(contractAddress, args) {
   }
 }
 
-// main().catch((error) => {
-//   console.error(error);
-//   process.exitCode = 1;
-// });
+export async function buildScriptsForDatabase() {
+  // add contract address and project summary
+
+  let addProjectScriptString = `INSERT INTO projects (
+project_name,
+img_url,
+project_description,
+quantity,
+price_eth,
+open_date_gmt,
+royalty_percent,
+active,
+contractAddress,
+summaryData
+)
+VALUES (
+'${projectInfo.projectName}',
+'https://ipfs.io/ipfs/${imageIPFS[0].ipfs}',
+'${projectInfo.websiteProjectDescription}',
+${projectInfo.numberOfEditions},
+${projectInfo.price},
+${projectInfo.releaseDate},
+${projectInfo.royaltiesPercent},
+0,
+${contractAddress},
+${finalProjectJSON}
+);
+`;
+  let addScriptFileName = `./build/5-final-project-data/addNewProject.sql`;
+  fs.writeFileSync(addScriptFileName, addProjectScriptString, (err) => {
+    if (err) {
+      console.error(err, +" on file " + i);
+    }
+  });
+
+  let activateProjectScriptString = `UPDATE projects SET active = 1 WHERE project_name = '${projectInfo.projectName}';`;
+  let activateProjectScriptFileName = `./build/5-final-project-data/activateNewProject.sql`;
+  fs.writeFileSync(
+    activateProjectScriptFileName,
+    activateProjectScriptString,
+    (err) => {
+      if (err) {
+        console.error(err, +" on file " + i);
+      }
+    }
+  );
+}
 
 function getTokenId(iter) {
   let s = iter + "";
