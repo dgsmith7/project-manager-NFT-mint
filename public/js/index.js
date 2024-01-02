@@ -57,6 +57,9 @@
   document
     .querySelector("#build-sequence-button")
     .addEventListener("click", () => {
+      document.querySelector("#build-sequence-button").disabled = true;
+      document.querySelector("#build-sequence-button").style.visibility =
+        "hidden";
       launchBuildSequence();
     });
 

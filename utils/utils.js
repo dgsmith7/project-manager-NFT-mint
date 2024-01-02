@@ -8,20 +8,20 @@ import pinataSDK from "@pinata/sdk";
 const pinata = new pinataSDK(
   process.env.pinata_api_key,
   process.env.pinata_secret_api_key
-); // authenticates when using 'pinata'
+);
 import pkg from "hardhat";
-const { hre, ethers, run, network } = pkg;
+const { ethers, run, network } = pkg;
 
 ("use strict");
 
-// add line breaks to project and meta strings
-
-let finalProjectJSON = `{"project": "${projectInfo.projectName}","elements":[`;
+let webpackCode = "";
+let finalProjectJSON = `{"project": "${projectInfo.projectName}",\n"elements":[\n`;
 let imageIPFS = [];
 let animIPFS = [];
 let finalMetaIPFS = [];
 let projectMetaIPFS = "";
 let contractAddress = "";
+let projectImageIPFS = "";
 
 export async function completeBuildAndDeploySequence() {
   let seq1 = [
@@ -37,9 +37,14 @@ export async function completeBuildAndDeploySequence() {
 }
 
 export async function getIframeString(hash) {
-  const webpackCode = fs
-    .readFileSync("./build/1-project-bundle/main.js")
-    .toString();
+  try {
+    webpackCode = await fs.promises.readFile(
+      "./build/1-project-bundle/main.js"
+    );
+    console.log("Webpack code successfully read.");
+  } catch (err) {
+    console.error(err);
+  }
   let tokenString = 'let tokenData = {\n"tokenHash": "0x' + hash + '",\n';
   tokenString += `"tokenId": "ffffffffffffffff",\n`;
   tokenString += `"projectName": "test",\n`;
@@ -52,11 +57,11 @@ export async function getIframeString(hash) {
     "class BaconRand {\nconstructor(_tokenData) {\nthis.hashVal = parseInt(_tokenData.tokenHash.slice(2), 16);\n}\nrand() { // mulberry32 from https://github.com/bryc/code/blob/master/jshash/PRNGs.md\nlet t = (this.hashVal += 0x6d2b79f5);\nt = Math.imul(t ^ (t >>> 15), t | 1);\nt ^= t + Math.imul(t ^ (t >>> 7), t | 61);\nreturn ((t ^ (t >>> 14)) >>> 0) / 4294967296;\n}\n}\nconst baconRand = new BaconRand(tokenData);\nconsole.log('Token data: ',tokenData);" +
     webpackCode +
     "\n</script>\n<style>\nhtml, body {\nmargin: 0;\npadding: 0;\nheight: 100vh;\noverflow: hidden;\n}\ndiv {\nresize: both;\noverflow: auto;\n}\nh1 {\nvisibility: hidden;\n}</style>\n</body>\n</html>\n";
-
   return finalString;
 }
 
 export async function buildAnimationFiles() {
+  console.log("\nBuilding animation files...");
   let tokenData = {
     tokenHash: "",
     tokenId: "",
@@ -66,15 +71,12 @@ export async function buildAnimationFiles() {
     toData: "",
   };
 
-  const webpackCode = await fs.promises.readFile(
-    "./build/1-project-bundle/main.js"
-  );
   let propertyString = '{"placeholder": "here"}'; // will be replaced later
   let toDataString = '{"placeholder": "here"}';
 
   for (let i = 0; i < projectInfo.numberOfEditions; i++) {
     tokenData.tokenHash = getTokenHash();
-    tokenData.tokenId = getTokenId(i);
+    tokenData.tokenId = i + 1; //getTokenId(i);
     let tokenString =
       'let tokenData = {\n"tokenHash": "0x' + tokenData.tokenHash + '",\n';
     tokenString += `"tokenId": "${tokenData.tokenId}",\n`;
@@ -96,7 +98,7 @@ export async function buildAnimationFiles() {
         `./build/2-anim-files/${tokenData.tokenId}.html`,
         finalString
       );
-      console.log('Animation File " + i + " written successfully.');
+      console.log(`Animation File ${i + 1} written successfully.`);
     } catch (err) {
       console.error(err);
     }
@@ -104,8 +106,9 @@ export async function buildAnimationFiles() {
 }
 
 export async function capturePreviewImages() {
+  console.log("\nCapturing preview images...");
   for (let i = 0; i < projectInfo.numberOfEditions; i++) {
-    let tokenId = getTokenId(i);
+    let tokenId = i + 1; //getTokenId(i);
     let animFileName = `./build/2-anim-files/${tokenId}.html`;
     let imageFileName = `./build/3-anim-images/${tokenId}.png`;
     const markup = fs.readFileSync(animFileName).toString();
@@ -114,41 +117,18 @@ export async function capturePreviewImages() {
       html: markup,
       puppeteerArgs: { defaultViewport: { width: 700, height: 700 } },
     }).then(() => {
-      console.log(`Preview image ${i} was created successfully!`);
+      console.log(`Preview image ${i + 1} was created successfully!`);
     });
   }
 }
 
 export async function pinImagesAndAnims() {
-  let imageString = `{"images": [`;
-  let animString = `{"anims": [`;
+  console.log("\nPinning animation files and preview images to IPFS...");
+  let imageString = `{\n"images": [\n`;
+  let animString = `{\n"anims": [\n`;
   for (let i = 0; i < projectInfo.numberOfEditions; i++) {
-    let tokenId = getTokenId(i);
-    let imageFileName = `./build/3-anim-images/${tokenId}.png`;
+    let tokenId = i + 1; //getTokenId(i);
     let animFileName = `./build/2-anim-files/${tokenId}.html`;
-    let imageOptions = {
-      pinataMetadata: {
-        name: projectInfo.projectName,
-        keyvalues: {
-          tokenId: tokenId,
-          item: "Token preview png file",
-        },
-      },
-      pinataOptions: {
-        cidVersion: 1,
-      },
-    };
-    console.log(imageFileName);
-    await pinata.pinFromFS(imageFileName, imageOptions).then((res) => {
-      imageString += `{"token": "${tokenId}", "ipfs": "https://ipfs.io/ipfs/${res.IpfsHash}"}`;
-      imageIPFS.push(
-        `{"token": "${tokenId}", "ipfs": "https://ipfs.io/ipfs/${res.IpfsHash}"}`
-      );
-
-      if (i < projectInfo.numberOfEditions - 1) {
-        imageString += `,`;
-      }
-    });
     let animOptions = {
       pinataMetadata: {
         name: projectInfo.projectName,
@@ -167,36 +147,72 @@ export async function pinImagesAndAnims() {
         `{"token": "${tokenId}", "ipfs": "https://ipfs.io/ipfs/${res.IpfsHash}"}`
       );
       if (i < projectInfo.numberOfEditions - 1) {
-        animString += `,`;
+        animString += `,\n`;
+      } else {
+        animString += `\n`;
+      }
+    });
+    let imageFileName = `./build/3-anim-images/${tokenId}.png`;
+    let imageOptions = {
+      pinataMetadata: {
+        name: projectInfo.projectName,
+        keyvalues: {
+          tokenId: tokenId,
+          item: "Token preview png file",
+        },
+      },
+      pinataOptions: {
+        cidVersion: 1,
+      },
+    };
+    await pinata.pinFromFS(imageFileName, imageOptions).then((res) => {
+      imageString += `{"token": "${tokenId}", "ipfs": "https://ipfs.io/ipfs/${res.IpfsHash}"}`;
+      imageIPFS.push(
+        `{"token": "${tokenId}", "ipfs": "https://ipfs.io/ipfs/${res.IpfsHash}"}`
+      );
+      if (i == 0) {
+        projectImageIPFS = `https://ipfs.io/ipfs/${res.IpfsHash}`;
+      }
+      if (i < projectInfo.numberOfEditions - 1) {
+        imageString += `,\n`;
+      } else {
+        imageString += `\n`;
       }
     });
   }
-  imageString += `]}`;
-  animString += `]}`;
-  finalProjectJSON += `${imageString}, ${animString},`;
+  animString += `]}\n`;
+  imageString += `]}\n`;
+  finalProjectJSON += `${imageString},\n ${animString},\n`;
+  console.log(animString);
+  console.log(imageString);
+  console.log("Anim array:");
+  console.log(...animIPFS);
+  console.log("Image array:");
+  console.log(...imageIPFS);
 }
 
 export async function buildFinalMetaAndPinToIPFS() {
+  console.log("\nBuilding token metadata files and pinning to IPFS...");
   for (let i = 0; i < projectInfo.numberOfEditions; i++) {
-    let tokenId = getTokenId(i);
-    let finalMeta = `{"image": "${
+    let tokenId = i + 1; //getTokenId(i);
+    let finalMeta = `{\n  "image": "${
       JSON.parse(imageIPFS[i]).ipfs
-    }","background_color": "96231B","external_url": "https://mact6340-app-nzv3s.ondigitalocean.app/projects","description": "${
+    }",\n  "background_color": "96231B",\n  "external_url": "https://mact6340-app-nzv3s.ondigitalocean.app/projects",\n  "description": "${
       projectInfo.tokenDescriptionText
-    }","name": "${projectInfo.openSeaCollectionName}","animation_url": "${
-      JSON.parse(animIPFS[i]).ipfs
-    }"}`;
+    }",\n  "name": "${
+      projectInfo.openSeaCollectionName
+    }",\n  "animation_url": "${JSON.parse(animIPFS[i]).ipfs}"\n}`;
     let finalMetaFileName = `./build/4-completed-metadata/${tokenId}.json`;
     try {
       fs.writeFileSync(finalMetaFileName, finalMeta);
-      console.log('Metafile " + i + "written successfully.');
+      console.log(`Metafile ${i + 1} written successfully.`);
     } catch (err) {
       console.error(err);
     }
   }
-  let finalMetaString = `{"metas": [`;
+  let finalMetaString = `{\n"metas": [\n`;
   for (let i = 0; i < projectInfo.numberOfEditions; i++) {
-    let tokenId = getTokenId(i);
+    let tokenId = i + 1; //getTokenId(i);
     let finalMetaFileName = `./build/4-completed-metadata/${tokenId}.json`;
     let finalMetaOptions = {
       pinataMetadata: {
@@ -211,7 +227,7 @@ export async function buildFinalMetaAndPinToIPFS() {
       },
     };
     await pinata.pinFromFS(finalMetaFileName, finalMetaOptions).then((res) => {
-      finalMetaString += `{"token": "${tokenId}", "ipfs":  "https://ipfs.io/ipfs/${res.IpfsHash}"}`;
+      finalMetaString += `{\n  "token": "${tokenId}",\n  "ipfs":  "https://ipfs.io/ipfs/${res.IpfsHash}"\n}\n`;
       finalMetaIPFS.push(
         `{"token": "${tokenId}", "ipfs":  "https://ipfs.io/ipfs/${res.IpfsHash}"}`
       );
@@ -220,26 +236,26 @@ export async function buildFinalMetaAndPinToIPFS() {
       }
     });
   }
-  finalMetaString += `]}`;
+  finalMetaString += `]\n}`;
   console.log(finalMetaString);
   finalProjectJSON += `${finalMetaString},`;
 }
 
 export async function buildProjectMetaAndPinToIPFS() {
-  let projectMetaString = `{"project-image": "https://gateway.pinata.cloud/ipfs/${imageIPFS[0].ipfs}", "project-meta": `;
+  console.log("\nBuilding project metadata file and pinning to IPFS...");
+  let projectMetaString = `{\n"project-image": "${projectImageIPFS}",\n"project-meta": `;
   let projectMeta =
     "" +
-    `{"name": "${projectInfo.openSeaCollectionName}","description": "${projectInfo.openSeaCollectionDescription}","image": "https://ipfs.io/ipfs/${imageIPFS[0].ipfs}","external_link": "https://mact6340-app-nzv3s.ondigitalocean.app/projects","seller_fee_basis_points":"${projectInfo.openSeaCollectionSeller_fee_basis_points}","fee_recipient": "${projectInfo.openSeaCollectionFee_recipient}"}`;
+    `{\n  "name": "${projectInfo.openSeaCollectionName}",\n  "description": "${projectInfo.openSeaCollectionDescription}",\n  "image": "https://ipfs.io/ipfs/${imageIPFS[0].ipfs}",\n  "external_link": "https://mact6340-app-nzv3s.ondigitalocean.app/projects",\n  "seller_fee_basis_points":"${projectInfo.openSeaCollectionSeller_fee_basis_points}",\n  "fee_recipient": "${projectInfo.openSeaCollectionFee_recipient}"\n}\n`;
   let projectMetaFileName = `./build/4-completed-metadata/${projectInfo.projectName
     .replace(/ /g, "_")
     .toLowerCase()}.json`;
   try {
     fs.writeFileSync(projectMetaFileName, projectMeta);
-    console.log('Project metadata file " + i + "written successfully.');
+    console.log(`Project metadata file written successfully.`);
   } catch (err) {
     console.error(err);
   }
-
   let projectMetaOptions = {
     pinataMetadata: {
       name: projectInfo.projectName,
@@ -254,23 +270,26 @@ export async function buildProjectMetaAndPinToIPFS() {
   await pinata
     .pinFromFS(projectMetaFileName, projectMetaOptions)
     .then((res) => {
-      projectMetaString += `"https://ipfs.io/ipfs/${res.IpfsHash}"}`;
+      projectMetaString += `"https://ipfs.io/ipfs/${res.IpfsHash}"\n}\n`;
       projectMetaIPFS = `"https://ipfs.io/ipfs/${res.IpfsHash}"}`;
     });
-  finalProjectJSON += `${projectMetaString}]}`;
+  finalProjectJSON += `${projectMetaString}\n]\n}\n`;
+  let finalProjectFileName = `./build/5-final-project-data/finalProjectData.json`;
   try {
-    fs.writeFileSync(
-      `./build/5-final-project-data/finalProjectData.json`,
-      finalProjectJSON
-    );
-    console.log("Final Project summary file written successfully.");
+    fs.writeFileSync(finalProjectFileName, finalProjectJSON);
+    console.log("Final Project summary file written to: ");
+    console.log(finalProjectFileName + "\n");
   } catch (err) {
     console.error(err);
   }
+  console.log(projectMetaString);
+  console.log("Saved project summary file to:");
+  console.log(finalProjectFileName);
 }
 
 export async function deployContract() {
-  deploy().catch((error) => {
+  console.log("\nDeploying contract...");
+  await deploy().catch((error) => {
     console.error(error);
     process.exitCode = 1;
   });
@@ -287,7 +306,6 @@ async function deploy() {
     royaltyArtist: projectInfo.openSeaCollectionFee_recipient,
     royaltyBasis: projectInfo.openSeaCollectionSeller_fee_basis_points,
   };
-  console.log(args);
   const courseNFTContractFactory = await ethers.getContractFactory(
     "CourseNFTContract"
   );
@@ -299,7 +317,6 @@ async function deploy() {
     args.royaltyBasis
   );
   // deploy
-  console.log("Deploying...");
   await courseNFTContract.waitForDeployment(
     args.mint_price,
     args.max_tokens,
@@ -308,7 +325,7 @@ async function deploy() {
     args.royaltyBasis
   );
   console.log("Waiting for block verifications...");
-  await courseNFTContract.deploymentTransaction().wait(15);
+  await courseNFTContract.deploymentTransaction().wait(30);
   contractAddress = await courseNFTContract.getAddress();
   console.log(`Contract deployed to ${contractAddress}`);
   // verify
@@ -317,7 +334,6 @@ async function deploy() {
     (network.config.chainId === 80001 && process.env.POLYGONSCAN_API_KEY) ||
     (network.config.chainId === 1115511 && process.env.ETHERSCAN_API_KEY)
   ) {
-    console.log("Verifying...");
     await verify(contractAddress, [
       args.mint_price,
       args.max_tokens,
@@ -329,20 +345,6 @@ async function deploy() {
   } else {
     console.log("No verification available for hardhat network.");
   }
-  // mint 3
-  // const ipfs = [
-  //   "https://ipfs.io/ipfs/QmdKR2UxXcSLVptr6ggziRG4EKUYNSiS2AFEy3wUAHVqUt",
-  //   "https://ipfs.io/ipfs/QmQnABgoMhgP1t1gyopTS4EmsaPUZ6dwufpq1QWBZg4RyD",
-  //   "https://ipfs.io/ipfs/QmfKLqTkMSNiC3Kc7unLctWkJREWFv4gF8Cknhkdej3snb",
-  // ];
-  // console.log("Minting 3 tokens...");
-  // for (let i = 0; i < 3; i++) {
-  //   const transactionResponse = await courseNFTContract.mintTo(ipfs[i], {
-  //     value: args.mint_price,
-  //   });
-  //   await transactionResponse.wait(3);
-  //   console.log(`Token ${i + 1} completed.`);
-  // }
 }
 
 async function verify(contractAddress, args) {
@@ -362,8 +364,9 @@ async function verify(contractAddress, args) {
 }
 
 export async function buildScriptsForDatabase() {
-  // add contract address and project summary
-
+  console.log(
+    "Building mySQL scripts for adding and activating project in database."
+  );
   let addProjectScriptString = `INSERT INTO projects (
 project_name,
 img_url,
@@ -378,15 +381,15 @@ summaryData
 )
 VALUES (
 '${projectInfo.projectName}',
-'https://ipfs.io/ipfs/${imageIPFS[0].ipfs}',
+'${projectImageIPFS}',
 '${projectInfo.websiteProjectDescription}',
 ${projectInfo.numberOfEditions},
 ${projectInfo.price},
 ${projectInfo.releaseDate},
 ${projectInfo.royaltiesPercent},
 0,
-${contractAddress},
-${finalProjectJSON}
+'${contractAddress}',
+'${finalProjectJSON}'
 );
 `;
   let addScriptFileName = `./build/5-final-project-data/addNewProject.sql`;
@@ -407,6 +410,9 @@ ${finalProjectJSON}
       }
     }
   );
+  console.log("Scripts saved to:");
+  console.log(addScriptFileName);
+  console.log(activateProjectScriptFileName);
 }
 
 function getTokenId(iter) {
@@ -432,37 +438,3 @@ function getTokenHash() {
       .join("");
   return h;
 }
-
-/*  for front end
-import Moralis from "moralis";
-import { EvmChain } from "@moralisweb3/common-evm-utils";
-import axios from "axios";
-import FormData from "form-data";
-import fs from "fs";
-let JWT = process.env.IPFS_JWT;
-let tokenList = [];
-
-export async function startMoralis() {
-  // starts moralis
-  await Moralis.start({
-    apiKey: process.env.MORALIS_API_KEY,
-  });
-}
-
-export async function getNFTs() {
-  // gets all NFTs from a contract
-  const address = "0xb0C3A5152A075190b7112567D8362B114FB0b636"; // <fragile geometry contract //userAddress;
-  const chain = EvmChain.POLYGON;
-  await Moralis.EvmApi.nft
-    //    .getWalletNFTCollections({
-    .getContractNFTs({
-      address,
-      chain,
-    })
-    .then((data) => {
-      tokenList = data.toJSON();
-      //      console.log(tokenList);
-    });
-}
-
-*/

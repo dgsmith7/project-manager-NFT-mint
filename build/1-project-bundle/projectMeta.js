@@ -1,7 +1,7 @@
 export const projectInfo = {
-  projectName: "Phi Geometry",
+  projectName: "Test 1 - Phi Geometry",
   artistsPayoutWallet: "0x94848CEe6eA7dBcc5322f0B13015A42ec63bC3BB",
-  numberOfEditions: 3,
+  numberOfEditions: 5,
   releaseDate: "2024-01-01 21:00:00",
   websiteProjectDescription:
     "Three intersecting planes, all in the proportions of the Golden Ratio (Phi), rotate around a common axis.  The background color and color of each plane are determined by each token's unique hash.",

@@ -1,1 +1,1 @@
-UPDATE projects SET active = 1 WHERE project_name = 'Phi Geometry';
+UPDATE projects SET active = 1 WHERE project_name = 'Test 1 - Phi Geometry';
