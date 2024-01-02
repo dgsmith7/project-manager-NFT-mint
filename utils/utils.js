@@ -15,7 +15,7 @@ const { ethers, run, network } = pkg;
 ("use strict");
 
 let webpackCode = "";
-let finalProjectJSON = `{"project": "${projectInfo.projectName}",\n"elements":[\n`;
+let finalProjectJSON = `{"project": "${projectInfo.projectName}","elements":[`;
 let imageIPFS = [];
 let animIPFS = [];
 let finalMetaIPFS = [];
@@ -124,8 +124,8 @@ export async function capturePreviewImages() {
 
 export async function pinImagesAndAnims() {
   console.log("\nPinning animation files and preview images to IPFS...");
-  let imageString = `{\n"images": [\n`;
-  let animString = `{\n"anims": [\n`;
+  let imageString = `{"images": [`;
+  let animString = `{"anims": [`;
   for (let i = 0; i < projectInfo.numberOfEditions; i++) {
     let tokenId = i + 1; //getTokenId(i);
     let animFileName = `./build/2-anim-files/${tokenId}.html`;
@@ -147,9 +147,9 @@ export async function pinImagesAndAnims() {
         `{"token": "${tokenId}", "ipfs": "https://ipfs.io/ipfs/${res.IpfsHash}"}`
       );
       if (i < projectInfo.numberOfEditions - 1) {
-        animString += `,\n`;
+        animString += `,`;
       } else {
-        animString += `\n`;
+        animString += ``;
       }
     });
     let imageFileName = `./build/3-anim-images/${tokenId}.png`;
@@ -174,15 +174,15 @@ export async function pinImagesAndAnims() {
         projectImageIPFS = `https://ipfs.io/ipfs/${res.IpfsHash}`;
       }
       if (i < projectInfo.numberOfEditions - 1) {
-        imageString += `,\n`;
+        imageString += `,`;
       } else {
-        imageString += `\n`;
+        imageString += ``;
       }
     });
   }
-  animString += `]}\n`;
-  imageString += `]}\n`;
-  finalProjectJSON += `${imageString},\n ${animString},\n`;
+  animString += `]}`;
+  imageString += `]}`;
+  finalProjectJSON += `${imageString},${animString},`;
   console.log(animString);
   console.log(imageString);
   console.log("Anim array:");
@@ -210,7 +210,7 @@ export async function buildFinalMetaAndPinToIPFS() {
       console.error(err);
     }
   }
-  let finalMetaString = `{\n"metas": [\n`;
+  let finalMetaString = `{"metas":[`;
   for (let i = 0; i < projectInfo.numberOfEditions; i++) {
     let tokenId = i + 1; //getTokenId(i);
     let finalMetaFileName = `./build/4-completed-metadata/${tokenId}.json`;
@@ -227,7 +227,7 @@ export async function buildFinalMetaAndPinToIPFS() {
       },
     };
     await pinata.pinFromFS(finalMetaFileName, finalMetaOptions).then((res) => {
-      finalMetaString += `{\n  "token": "${tokenId}",\n  "ipfs":  "https://ipfs.io/ipfs/${res.IpfsHash}"\n}\n`;
+      finalMetaString += `{"token":"${tokenId}","ipfs":"https://ipfs.io/ipfs/${res.IpfsHash}"}`;
       finalMetaIPFS.push(
         `{"token": "${tokenId}", "ipfs":  "https://ipfs.io/ipfs/${res.IpfsHash}"}`
       );
@@ -236,17 +236,17 @@ export async function buildFinalMetaAndPinToIPFS() {
       }
     });
   }
-  finalMetaString += `]\n}`;
+  finalMetaString += `]}`;
   console.log(finalMetaString);
   finalProjectJSON += `${finalMetaString},`;
 }
 
 export async function buildProjectMetaAndPinToIPFS() {
   console.log("\nBuilding project metadata file and pinning to IPFS...");
-  let projectMetaString = `{\n"project-image": "${projectImageIPFS}",\n"project-meta": `;
+  let projectMetaString = `{"project-image": "${projectImageIPFS}","project-meta": `;
   let projectMeta =
     "" +
-    `{\n  "name": "${projectInfo.openSeaCollectionName}",\n  "description": "${projectInfo.openSeaCollectionDescription}",\n  "image": "https://ipfs.io/ipfs/${imageIPFS[0].ipfs}",\n  "external_link": "https://mact6340-app-nzv3s.ondigitalocean.app/projects",\n  "seller_fee_basis_points":"${projectInfo.openSeaCollectionSeller_fee_basis_points}",\n  "fee_recipient": "${projectInfo.openSeaCollectionFee_recipient}"\n}\n`;
+    `{"name": "${projectInfo.openSeaCollectionName}","description": "${projectInfo.openSeaCollectionDescription}","image": "https://ipfs.io/ipfs/${imageIPFS[0].ipfs}","external_link": "https://mact6340-app-nzv3s.ondigitalocean.app/projects","seller_fee_basis_points":"${projectInfo.openSeaCollectionSeller_fee_basis_points}","fee_recipient": "${projectInfo.openSeaCollectionFee_recipient}"}`;
   let projectMetaFileName = `./build/4-completed-metadata/${projectInfo.projectName
     .replace(/ /g, "_")
     .toLowerCase()}.json`;
@@ -270,10 +270,10 @@ export async function buildProjectMetaAndPinToIPFS() {
   await pinata
     .pinFromFS(projectMetaFileName, projectMetaOptions)
     .then((res) => {
-      projectMetaString += `"https://ipfs.io/ipfs/${res.IpfsHash}"\n}\n`;
+      projectMetaString += `"https://ipfs.io/ipfs/${res.IpfsHash}"}`;
       projectMetaIPFS = `"https://ipfs.io/ipfs/${res.IpfsHash}"}`;
     });
-  finalProjectJSON += `${projectMetaString}\n]\n}\n`;
+  finalProjectJSON += `${projectMetaString}]}`;
   let finalProjectFileName = `./build/5-final-project-data/finalProjectData.json`;
   try {
     fs.writeFileSync(finalProjectFileName, finalProjectJSON);
@@ -385,7 +385,7 @@ VALUES (
 '${projectInfo.websiteProjectDescription}',
 ${projectInfo.numberOfEditions},
 ${projectInfo.price},
-${projectInfo.releaseDate},
+'${projectInfo.releaseDate}',
 ${projectInfo.royaltiesPercent},
 0,
 '${contractAddress}',
