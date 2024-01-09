@@ -32,8 +32,14 @@ export async function completeBuildAndDeploySequence() {
     buildProjectMetaAndPinToIPFS,
     deployContract,
     buildScriptsForDatabase,
+    close,
   ];
   for (const fn of seq1) await fn();
+}
+
+export async function close() {
+  console.log("End of line.");
+  process.exit();
 }
 
 export async function getIframeString(hash) {
@@ -306,10 +312,10 @@ async function deploy() {
     royaltyArtist: projectInfo.openSeaCollectionFee_recipient,
     royaltyBasis: projectInfo.openSeaCollectionSeller_fee_basis_points,
   };
-  const courseNFTContractFactory = await ethers.getContractFactory(
-    "CourseNFTContract"
+  const genArtNFTContractFactory = await ethers.getContractFactory(
+    "GenArtNFTContract"
   );
-  const courseNFTContract = await courseNFTContractFactory.deploy(
+  const genArtNFTContract = await genArtNFTContractFactory.deploy(
     args.mint_price,
     args.max_tokens,
     args.base_uri,
@@ -317,7 +323,7 @@ async function deploy() {
     args.royaltyBasis
   );
   // deploy
-  await courseNFTContract.waitForDeployment(
+  await genArtNFTContract.waitForDeployment(
     args.mint_price,
     args.max_tokens,
     args.base_uri,
@@ -325,8 +331,8 @@ async function deploy() {
     args.royaltyBasis
   );
   console.log("Waiting for block verifications...");
-  await courseNFTContract.deploymentTransaction().wait(30);
-  contractAddress = await courseNFTContract.getAddress();
+  await genArtNFTContract.deploymentTransaction().wait(30);
+  contractAddress = await genArtNFTContract.getAddress();
   console.log(`Contract deployed to ${contractAddress}`);
   // verify
   if (

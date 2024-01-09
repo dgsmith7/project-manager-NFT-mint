@@ -10,11 +10,11 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-error CourseNFTContract__MaxSupplyReached();
-error CourseNFTContract__ValueNotEqualPrice();
-error CourseNFTContract__WrongAvenueForThisTransaction();
+error GenArtNFTContract__MaxSupplyReached();
+error GenArtNFTContract__ValueNotEqualPrice();
+error GenArtNFTContract__WrongAvenueForThisTransaction();
 
-contract CourseNFTContract is
+contract GenArtNFTContract is
     ERC721,
     ERC721Enumerable,
     ERC721Burnable,
@@ -41,7 +41,7 @@ contract CourseNFTContract is
         string memory _base_uri,
         address _royaltyArtist,
         uint96 _royaltyBasis
-    ) ERC721("CourseNFTContract", "CNC") {
+    ) ERC721("GenArtNFTContract", "CNC") {
         i_mint_price = _mint_price;
         i_max_tokens = _max_tokens;
         s_base_uri = _base_uri;
@@ -50,11 +50,11 @@ contract CourseNFTContract is
     }
 
     receive() external payable {
-        revert CourseNFTContract__WrongAvenueForThisTransaction();
+        revert GenArtNFTContract__WrongAvenueForThisTransaction();
     }
 
     fallback() external payable {
-        revert CourseNFTContract__WrongAvenueForThisTransaction();
+        revert GenArtNFTContract__WrongAvenueForThisTransaction();
     }
 
     function mintTo(
@@ -63,11 +63,11 @@ contract CourseNFTContract is
         uint256 tokenId = _tokenIdCounter.current();
         // check for supply limits
         if (tokenId >= i_max_tokens) {
-            revert CourseNFTContract__MaxSupplyReached();
+            revert GenArtNFTContract__MaxSupplyReached();
         }
         // make sure there is money
         if (msg.value != i_mint_price) {
-            revert CourseNFTContract__ValueNotEqualPrice();
+            revert GenArtNFTContract__ValueNotEqualPrice();
         }
         _tokenIdCounter.increment();
         uint256 newItemId = _tokenIdCounter.current();
@@ -90,6 +90,10 @@ contract CourseNFTContract is
     }
 
     function getBaseURI() public view returns (string memory) {
+        return s_base_uri;
+    }
+
+    function contractURI() public view returns (string memory) {
         return s_base_uri;
     }
 

@@ -10,69 +10,6 @@ const app = express();
 const port = 8081;
 
 app.use(express.static("public"));
-// app.get("/", (req, res) => {
-//   res.send("NFT bundler by David G. Smith.");
-// });
-
-// app.post("/build-anims", async (req, res) => {
-//   await utils
-//     .buildAnimationFiles()
-//     .then(() => {
-//       res.send({ result: "animations built" });
-//     })
-//     .catch((err) => {
-//       console.log(err);
-//       res.send({ result: "failure during animation builds" });
-//     });
-// });
-
-// app.post("/capture-images", async (req, res) => {
-//   await utils
-//     .capturePreviewImages()
-//     .then(() => {
-//       res.send({ result: "images captured" });
-//     })
-//     .catch((err) => {
-//       console.log(err);
-//       res.send({ result: "failure during image captures" });
-//     });
-// });
-
-// app.post("/pin-images-and-anims", async (req, res) => {
-//   await utils
-//     .pinImagesAndAnims()
-//     .then(() => {
-//       res.send({ result: "images and anims pinned" });
-//     })
-//     .catch((err) => {
-//       console.log(err);
-//       res.send({ result: "failure during image and anim pinning" });
-//     });
-// });
-
-// app.post("/build-and-pin-final-metas", async (req, res) => {
-//   await utils
-//     .buildFinalMetaAndPinToIPFS()
-//     .then(() => {
-//       res.send({ result: "final metas built and pinned" });
-//     })
-//     .catch((err) => {
-//       console.log(err);
-//       res.send({ result: "failure building and pinning final metas" });
-//     });
-// });
-
-// app.post("/build-and-pin-project-metas", async (req, res) => {
-//   await utils
-//     .buildProjectMetaAndPinToIPFS()
-//     .then(() => {
-//       res.send({ result: "project meta built and pinned" });
-//     })
-//     .catch((err) => {
-//       console.log(err);
-//       res.send({ result: "failure building and pinning project meta" });
-//     });
-// });
 
 app.post("/build-sequence", async (req, res) => {
   await utils

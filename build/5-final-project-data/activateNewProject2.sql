@@ -1,0 +1,1 @@
+UPDATE projects SET active = 1 WHERE project_name = 'Test 2 - Tetrahedron Geometry';
