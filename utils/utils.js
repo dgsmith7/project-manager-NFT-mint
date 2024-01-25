@@ -38,7 +38,7 @@ export async function completeBuildAndDeploySequence() {
 }
 
 export async function close() {
-  console.log("End of line.");
+  console.log("End of line."); // nod to "The MCP" from TRON (1982)
   process.exit();
 }
 
@@ -203,9 +203,9 @@ export async function buildFinalMetaAndPinToIPFS() {
     let tokenId = i + 1; //getTokenId(i);
     let finalMeta = `{\n  "image": "${
       JSON.parse(imageIPFS[i]).ipfs
-    }",\n  "background_color": "96231B",\n  "external_url": "https://mact6340-app-nzv3s.ondigitalocean.app/projects",\n  "description": "${
-      projectInfo.tokenDescriptionText
-    }",\n  "name": "${
+    }",\n  "background_color": "96231B",\n  "external_url": "${
+      projectInfo.projectWebUrl
+    }",\n  "description": "${projectInfo.tokenDescriptionText}",\n  "name": "${
       projectInfo.openSeaCollectionName
     }",\n  "animation_url": "${JSON.parse(animIPFS[i]).ipfs}"\n}`;
     let finalMetaFileName = `./build/4-completed-metadata/${tokenId}.json`;
@@ -252,7 +252,13 @@ export async function buildProjectMetaAndPinToIPFS() {
   let projectMetaString = `{"project-image": "${projectImageIPFS}","project-meta": `;
   let projectMeta =
     "" +
-    `{"name": "${projectInfo.openSeaCollectionName}","description": "${projectInfo.openSeaCollectionDescription}","image": "https://ipfs.io/ipfs/${imageIPFS[0].ipfs}","external_link": "https://mact6340-app-nzv3s.ondigitalocean.app/projects","seller_fee_basis_points":"${projectInfo.openSeaCollectionSeller_fee_basis_points}","fee_recipient": "${projectInfo.openSeaCollectionFee_recipient}"}`;
+    `{"name": "${projectInfo.openSeaCollectionName}","description": "${
+      projectInfo.openSeaCollectionDescription
+    }","image": "${JSON.parse(imageIPFS[0]).ipfs}","external_link": "${
+      projectInfo.projectWebUrl
+    }","seller_fee_basis_points":"${
+      projectInfo.openSeaCollectionSeller_fee_basis_points
+    }","fee_recipient": "${projectInfo.openSeaCollectionFee_recipient}"}`;
   let projectMetaFileName = `./build/4-completed-metadata/${projectInfo.projectName
     .replace(/ /g, "_")
     .toLowerCase()}.json`;
@@ -312,18 +318,18 @@ async function deploy() {
     royaltyArtist: projectInfo.openSeaCollectionFee_recipient,
     royaltyBasis: projectInfo.openSeaCollectionSeller_fee_basis_points,
   };
-  const genArtNFTContractFactory = await ethers.getContractFactory(
-    "GenArtNFTContract"
+  const DGSCreativeNFTContractFactory = await ethers.getContractFactory(
+    "DGSCreativeNFTContract"
   );
-  const genArtNFTContract = await genArtNFTContractFactory.deploy(
+  // deploy
+  const DGSCreativeNFTContract = await DGSCreativeNFTContractFactory.deploy(
     args.mint_price,
     args.max_tokens,
     args.base_uri,
     args.royaltyArtist,
     args.royaltyBasis
   );
-  // deploy
-  await genArtNFTContract.waitForDeployment(
+  await DGSCreativeNFTContract.waitForDeployment(
     args.mint_price,
     args.max_tokens,
     args.base_uri,
@@ -331,8 +337,8 @@ async function deploy() {
     args.royaltyBasis
   );
   console.log("Waiting for block verifications...");
-  await genArtNFTContract.deploymentTransaction().wait(30);
-  contractAddress = await genArtNFTContract.getAddress();
+  await DGSCreativeNFTContract.deploymentTransaction().wait(30);
+  contractAddress = await DGSCreativeNFTContract.getAddress();
   console.log(`Contract deployed to ${contractAddress}`);
   // verify
   if (
@@ -419,12 +425,6 @@ ${projectInfo.royaltiesPercent},
   console.log("Scripts saved to:");
   console.log(addScriptFileName);
   console.log(activateProjectScriptFileName);
-}
-
-function getTokenId(iter) {
-  let s = iter + "";
-  while (s.length < 16) s = "0" + s;
-  return s;
 }
 
 function getTokenHash() {

@@ -36,30 +36,6 @@
       launchBuildSequence();
     });
 
-  function launchBuildSequence() {
-    fetch("/build-sequence", {
-      method: "POST",
-      headers: {
-        "Content-type": "application/json",
-      },
-    })
-      .then(() => {
-        document.querySelector("#build-sequence-button-response").innerHTML =
-          response.result;
-        document.querySelector("#project-meta-display").innerHTML =
-          response.result;
-      })
-      .then(() => {
-        setTimeout(() => {
-          document.querySelector("#build-sequence-button-response").innerHTML =
-            "";
-        }, "5000");
-      })
-      .catch((err) => {
-        console.log("We were unable to complete build sequence - ", err);
-      });
-  }
-
   function populateProjectData() {
     fetch("/get-project-data", {
       method: "POST",
@@ -69,11 +45,12 @@
     })
       .then((r) => r.json())
       .then((res) => {
-        console.log("this is it:", res);
         document.querySelector("#project-name-holder").innerHTML =
           res.projectName;
         document.querySelector("#project-desc-holder").innerHTML =
           res.websiteProjectDescription;
+        document.querySelector("#project-website-holder").innerHTML =
+          res.projectWebUrl;
         document.querySelector("#project-price-holder").innerHTML = res.price;
         document.querySelector("#project-quantity-holder").innerHTML =
           res.numberOfEditions;
@@ -96,6 +73,30 @@
       })
       .catch((err) => {
         console.log("We were unable to get project info - ", err);
+      });
+  }
+
+  function launchBuildSequence() {
+    fetch("/build-sequence", {
+      method: "POST",
+      headers: {
+        "Content-type": "application/json",
+      },
+    })
+      .then(() => {
+        document.querySelector("#build-sequence-button-response").innerHTML =
+          response.result;
+        document.querySelector("#project-meta-display").innerHTML =
+          response.result;
+      })
+      .then(() => {
+        setTimeout(() => {
+          document.querySelector("#build-sequence-button-response").innerHTML =
+            "";
+        }, "5000");
+      })
+      .catch((err) => {
+        console.log("We were unable to complete build sequence - ", err);
       });
   }
 })();

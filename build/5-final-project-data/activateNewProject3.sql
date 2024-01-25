@@ -1,1 +1,0 @@
-UPDATE projects SET active = 1 WHERE project_name = 'Test 3 - Torus Knot Geometry';
